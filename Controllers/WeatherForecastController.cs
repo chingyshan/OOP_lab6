@@ -7,6 +7,7 @@ public class WeatherForecastController(IWeatherDataClient client)
 {
     public async Task<WeatherForecast> GetForecast(decimal latitude, decimal longitude)
     {
-        throw new NotImplementedException();
+        var days = await client.LocationForecast(latitude, longitude);
+        return new WeatherForecast(days);
     }
 }
