@@ -2,8 +2,10 @@
 
 public class WeatherProviderSelector(IWeatherDataClient openWeather, IWeatherDataClient google)
 {
-    public IWeatherDataClient GetProvider(string provider)
+    public IWeatherDataClient GetProvider(string provider) => provider.ToLower() switch
     {
-        throw new NotImplementedException();
-    }
+        "openweather" => openWeather,
+        "google" => google,
+        _ => throw new ArgumentException($"Unknown provider: {provider}")
+    };
 }
