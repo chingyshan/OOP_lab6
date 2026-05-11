@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Forecast.Models.Weather;
 using Forecast.Utils;
 
 namespace Forecast.Clients;
@@ -22,21 +23,21 @@ class OpenWeatherDataClient : IWeatherDataClient
             var response = await client.GetAsync(
                 $"?lat={latitude}&lon={longitude}&appid={apiKey}&units=metric"
             );
-
             if (!response.IsSuccessStatusCode)
-            {
-                throw new ApiCallException(
-                    $"openweather returned bad status: {(ushort)response.StatusCode}"
-                );
-            }
+                throw new ApiCallException($"openweather returned bad status: {(ushort)response.StatusCode}");
 
             var data = await response.Content.ReadFromJsonAsync<OpenWeatherResponse>();
-            return data?.Main?.Temp ?? throw new ApiCallException($"failed to decode response");
+            return data?.Main?.Temp ?? throw new ApiCallException("failed to decode response");
         }
         catch (HttpRequestException e)
         {
-            throw new ApiCallException($"failed to call openweather: {e.Message}.", inner: e);
+            throw new ApiCallException($"failed to call openweather: {e.Message}", e);
         }
+    }
+
+    public Task<List<ForecastDay>> LocationForecast(decimal latitude, decimal longitude)
+    {
+        throw new NotImplementedException();
     }
 }
 

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Forecast.Models.Weather;
 using Forecast.Utils;
 
 namespace Forecast.Clients;
@@ -22,7 +23,6 @@ public class GoogleWeatherDataClient : IWeatherDataClient
             var response = await client.GetAsync(
                 $"forecast?location.latitude={latitude}&location.longitude={longitude}&key={apiKey}&pageSize=1"
             );
-
             if (!response.IsSuccessStatusCode)
                 throw new ApiCallException($"google weather returned bad status: {(ushort)response.StatusCode}");
 
@@ -34,6 +34,11 @@ public class GoogleWeatherDataClient : IWeatherDataClient
         {
             throw new ApiCallException($"failed to call google weather: {e.Message}", e);
         }
+    }
+
+    public Task<List<ForecastDay>> LocationForecast(decimal latitude, decimal longitude)
+    {
+        throw new NotImplementedException();
     }
 }
 
