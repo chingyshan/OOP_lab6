@@ -2,14 +2,13 @@ using DotEnv.Core;
 using Forecast.Api;
 using Forecast.Clients;
 using Forecast.Controllers;
+using Forecast.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Loading configuration as environment variables from the .env file.
 new EnvLoader().Load();
 builder.Configuration.AddEnvironmentVariables();
 
-// Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApiDocument(config =>
 {
@@ -17,13 +16,23 @@ builder.Services.AddOpenApiDocument(config =>
     config.Title = "Weather Example API";
     config.Version = "v1";
 });
+
 builder.Services.AddHttpClient<OpenWeatherDataClient>();
-builder.Services.AddSingleton<IWeatherDataClient, OpenWeatherDataClient>();
-builder.Services.AddSingleton<CurrentWeatherController>();
+builder.Services.AddHttpClient<GoogleWeatherDataClient>();
+builder.Services.AddSingleton<OpenWeatherDataClient>();
+builder.Services.AddSingleton<GoogleWeatherDataClient>();
+builder.Services.AddSingleton<WeatherProviderSelector>(sp => new WeatherProviderSelector(
+    sp.GetRequiredService<OpenWeatherDataClient>(),
+    sp.GetRequiredService<GoogleWeatherDataClient>()
+));
+builder.Services.AddSingleton<CurrentWeatherController>(sp =>
+    new CurrentWeatherController(sp.GetRequiredService<OpenWeatherDataClient>()));
+builder.Services.AddSingleton<WeatherForecastController>(sp =>
+    new WeatherForecastController(sp.GetRequiredService<OpenWeatherDataClient>()));
+builder.Services.AddSingleton<CityLocationResolver>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseOpenApi();
@@ -32,5 +41,4 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapGroup("/api/v1").MapCurrentWeatherApi();
-
 app.Run();
