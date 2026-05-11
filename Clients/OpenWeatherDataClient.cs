@@ -35,9 +35,26 @@ class OpenWeatherDataClient : IWeatherDataClient
         }
     }
 
-    public Task<List<ForecastDay>> LocationForecast(decimal latitude, decimal longitude)
+    public async Task<List<ForecastDay>> LocationForecast(decimal latitude, decimal longitude)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var response = await client.GetAsync(
+                $"forecast?lat={latitude}&lon={longitude}&appid={apiKey}&units=metric&cnt=5"
+            );
+            if (!response.IsSuccessStatusCode)
+                throw new ApiCallException($"openweather returned bad status: {(ushort)response.StatusCode}");
+
+            var data = await response.Content.ReadFromJsonAsync<OpenWeatherForecastResponse>();
+            return data?.List?.Select(item => new ForecastDay(
+                DateTimeOffset.FromUnixTimeSeconds(item.Dt).DateTime,
+                item.Main.Temp
+            )).ToList() ?? throw new ApiCallException("failed to decode response");
+        }
+        catch (HttpRequestException e)
+        {
+            throw new ApiCallException($"failed to call openweather: {e.Message}", e);
+        }
     }
 }
 
@@ -51,4 +68,19 @@ class OpenWeatherResponse
         [JsonPropertyName("temp")]
         public decimal Temp { get; set; }
     }
+}
+
+class OpenWeatherForecastResponse
+{
+    [JsonPropertyName("list")]
+    public required List<OpenWeatherForecastItem> List { get; set; }
+}
+
+class OpenWeatherForecastItem
+{
+    [JsonPropertyName("dt")]
+    public long Dt { get; set; }
+
+    [JsonPropertyName("main")]
+    public required OpenWeatherResponse.Nested Main { get; set; }
 }

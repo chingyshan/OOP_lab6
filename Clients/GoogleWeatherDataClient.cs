@@ -36,9 +36,26 @@ public class GoogleWeatherDataClient : IWeatherDataClient
         }
     }
 
-    public Task<List<ForecastDay>> LocationForecast(decimal latitude, decimal longitude)
+    public async Task<List<ForecastDay>> LocationForecast(decimal latitude, decimal longitude)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var response = await client.GetAsync(
+                $"forecast?location.latitude={latitude}&location.longitude={longitude}&key={apiKey}&pageSize=5"
+            );
+            if (!response.IsSuccessStatusCode)
+                throw new ApiCallException($"google weather returned bad status: {(ushort)response.StatusCode}");
+
+            var data = await response.Content.ReadFromJsonAsync<GoogleWeatherForecastResponse>();
+            return data?.ForecastDays?.Select(item => new ForecastDay(
+                DateTime.Parse(item.Interval.StartTime),
+                item.MaxTemperature.Degrees
+            )).ToList() ?? throw new ApiCallException("failed to decode response");
+        }
+        catch (HttpRequestException e)
+        {
+            throw new ApiCallException($"failed to call google weather: {e.Message}", e);
+        }
     }
 }
 
@@ -58,4 +75,25 @@ class Temperature
 {
     [JsonPropertyName("degrees")]
     public decimal Degrees { get; set; }
+}
+
+class GoogleWeatherForecastResponse
+{
+    [JsonPropertyName("forecastDays")]
+    public List<GoogleForecastDay>? ForecastDays { get; set; }
+}
+
+class GoogleForecastDay
+{
+    [JsonPropertyName("interval")]
+    public required GoogleInterval Interval { get; set; }
+
+    [JsonPropertyName("maxTemperature")]
+    public required Temperature MaxTemperature { get; set; }
+}
+
+class GoogleInterval
+{
+    [JsonPropertyName("startTime")]
+    public required string StartTime { get; set; }
 }
