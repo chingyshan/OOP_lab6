@@ -11,8 +11,10 @@ public class CurrentWeatherController(IWeatherDataClient client)
         return new(temperature);
     }
 
-    public Task<List<CurrentWeather>> GetTemperaturesForLocations(List<(decimal lat, decimal lon)> locations)
+    public async Task<List<CurrentWeather>> GetTemperaturesForLocations(List<(decimal lat, decimal lon)> locations)
     {
-        throw new NotImplementedException();
+        var tasks = locations.Select(loc => client.LocationCurrentTemperature(loc.lat, loc.lon));
+        var temperatures = await Task.WhenAll(tasks);
+        return temperatures.Select(t => new CurrentWeather(t)).ToList();
     }
 }
